@@ -1,5 +1,15 @@
 # 安装heapster插件
 
+## 准备镜像
+
+官方镜像保存在 gcr.io 中需要翻墙才能下载，为了方便大家使用，我下载后放到了[时速云](http://www.tenxcloud.com)中，为公有镜像供大家下载。
+
+- index.tenxcloud.com/jimmy/heapster-amd64:v1.3.0-beta.1
+- index.tenxcloud.com/jimmy/heapster-influxdb-amd64:v1.1.1
+- index.tenxcloud.com/jimmy/heapster-grafana-amd64:v4.0.2
+
+## 准备YAML文件
+
 到 [heapster release 页面](https://github.com/kubernetes/heapster/releases) 下载最新版本的 heapster。
 
 ``` bash
@@ -28,7 +38,7 @@ $ diff grafana-deployment.yaml.orig grafana-deployment.yaml
 16c16
 <         image: gcr.io/google_containers/heapster-grafana-amd64:v4.0.2
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/heapster-grafana-amd64:v4.0.2
+>         image: harbor-001.jimmysong.io/library/heapster-grafana-amd64:v4.0.2
 40,41c40,41
 <           # value: /api/v1/proxy/namespaces/kube-system/services/monitoring-grafana/
 <           value: /
@@ -47,7 +57,7 @@ $ diff heapster-deployment.yaml.orig heapster-deployment.yaml
 16c16
 <         image: gcr.io/google_containers/heapster-amd64:v1.3.0-beta.1
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/heapster-amd64:v1.3.0-beta.1
+>         image: harbor-001.jimmysong.io/library/heapster-amd64:v1.3.0-beta.1
 ```
 
 ## 配置 influxdb-deployment
@@ -77,7 +87,7 @@ $ diff influxdb-deployment.yaml.orig influxdb-deployment.yaml
 16c16
 <         image: gcr.io/google_containers/heapster-influxdb-amd64:v1.1.1
 ---
->         image: sz-pg-oam-docker-hub-001.tendcloud.com/library/heapster-influxdb-amd64:v1.1.1
+>         image: harbor-001.jimmysong.io/library/heapster-influxdb-amd64:v1.1.1
 19a20,21
 >         - mountPath: /etc/
 >           name: influxdb-config

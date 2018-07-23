@@ -2,6 +2,10 @@
 
 Serverless（无服务器架构）指的是由开发者实现的服务端逻辑运行在无状态的计算容器中，它由事件触发， 完全被第三方管理，其业务层面的状态则被开发者使用的数据库和存储资源所记录。
 
+下图来自谷歌云平台官网，是对云计算的一个很好的分层概括，其中 serverless 就是构建在虚拟机和容器之上的一层，与应用本身的关系更加密切。
+
+![从物理机到函数计算](../images/from-bare-metal-to-functions.jpg)
+
 ### Serverless架构的优点
 
 今天大多数公司在开发应用程序并将其部署在服务器上的时候，无论是选择公有云还是私有的数据中心，都需要提前了解究竟需要多少台服务器、多大容量的存储和数据库的功能等。并需要部署运行应用程序和依赖的软件到基础设施之上。假设我们不想在这些细节上花费精力，是否有一种简单的架构模型能够满足我们这种想法？这个答案已经存在，这就是今天软件架构世界中新鲜但是很热门的一个话题——Serverless（无服务器）架构。
@@ -30,16 +34,24 @@ Serverless架构明显比其他架构更简单。更少的组件，就意味着�
 
 ## Kubernetes上的serverless 架构
 
-目前已经有一批优秀的基于 kubernetes 的 serverless 架构开源项目如下：
+目前已经有一批优秀的基于 kubernetes 的 serverless 架构（FaaS）开源项目如下：
 
 - [faas](https://github.com/alexellis/faas) - 🐳 Functions as a Service - a serverless framework for Docker & Kubernetes [https://blog.alexellis.io/introducing…](https://blog.alexellis.io/introducing-functions-as-a-service/)
 - [faas-netes](https://github.com/alexellis/faas-netes) - Enable Kubernetes as a backend for Functions as a Service (OpenFaaS) <https://github.com/alexellis/faas>
+- [fn](https://github.com/fnproject/fn) - The container native, cloud agnostic serverless platform. [http://fnproject.io](http://fnproject.io/)
 - [funktion](https://github.com/funktionio/funktion/) - a CLI tool for working with funktion <https://funktion.fabric8.io/>
+- [fx](https://github.com/metrue/fx) - Poor man's serverless framework based on Docker, Function as a Service with painless.
 - [IronFunctions](https://github.com/iron-io/functions) - IronFunctions - the serverless microservices platform. [http://iron.io](http://iron.io/)
 - [kubeless](https://github.com/kubeless/kubeless) - Kubernetes Native Serverless Framework [http://kubeless.io](http://kubeless.io/)
 - [OpenWhisk](http://openwhisk.incubator.apache.org/) -  Apache OpenWhisk (Incubating) is a [serverless](http://openwhisk.incubator.apache.org/serverless), open source cloud platform that executes functions in response to events at any scale.
 
 以上项目收录于 [awsome-cloud-native](https://github.com/rootsongjc/awesome-cloud-native)
+
+## FaaS
+
+Function-as-a-Service 全景图（图片来自<https://github.com/amyers1793/FunctionasaServiceLandscape>)
+
+![FaaS Landscape](../images/redpoint-faas-landscape.jpg)
 
 ## 参考
 
@@ -50,3 +62,5 @@ Serverless架构明显比其他架构更简单。更少的组件，就意味着�
 [2017年会是Serverless爆发之年吗？](http://www.infoq.com/cn/news/2017/04/2017-Serverless)
 
 [从IaaS到FaaS—— Serverless架构的前世今生](https://aws.amazon.com/cn/blogs/china/iaas-faas-serverless/)
+
+[Introducing Redpoint's FaaS Landscape](https://medium.com/memory-leak/this-year-gartner-added-serverless-to-its-hype-cycle-of-emerging-technologies-reflecting-the-5dfe43d818f0)

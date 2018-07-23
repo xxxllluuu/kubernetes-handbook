@@ -50,7 +50,7 @@ NAME                   CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE
 kubernetes-dashboard   10.254.177.181   <nodes>       443:32324/TCP   49m
 ```
 
-访问集群中的任何一个节点，即可打开dashboard登陆页面，如https://172.20.0.113:32324/（请使用https访问），支持使用`kubeconfig`和`token`两种的认证方式：
+访问集群中的任何一个节点，即可打开dashboard登陆页面，如<https://172.20.0.113:32324/>（请使用https访问），支持使用`kubeconfig`和`token`两种的认证方式：
 
 ![登陆界面](../images/kubernetes-dashboard-1.7.1-login.jpg)
 
@@ -65,6 +65,20 @@ kubernetes-dashboard   10.254.177.181   <nodes>       443:32324/TCP   49m
 修改URL地址中的`namespace`字段为该用户有权限访问的命名空间如brand：<https://172.20.0.113:32324/#!/overview?namespace=brand>：
 
 ![用户空间](../images/kubernetes-dashboard-1.7.1-brand.jpg)
+
+**设置界面的语言**
+
+我们看到现在 dashboard 的页面都已经被汉化了，当前支持英文、中文简体、中文繁体、日语，根据浏览器的语言自动切换的。如果想要强制设置 dashboard 中显示的语言，需要在 dahsboard 的 Deployment yaml 配置中增加如下配置：
+
+```yaml
+env:
+  - name: ACCEPT_LANGUAGE
+    value: english
+```
+
+关于 i18n 的设计文档请参考：<https://github.com/kubernetes/dashboard/blob/master/docs/design/i18n.md>
+
+更简单的方式是，如果您使用的Chrome浏览器，则在浏览器中的配置中设置语言的顺序后刷新网页，dashboard将以您在Chrome中配置的首选语言显示。
 
 ## 身份认证
 
@@ -87,7 +101,11 @@ kubernetes-dashboard   10.254.177.181   <nodes>       443:32324/TCP   49m
 
 这样就可以使用`brand.kubeconfig`文件来登陆dashboard了，而且只能访问和操作`brand`命名空间下的对象。
 
-### 生成 token
+### 生成集群管理员的token
+
+以下是为集群最高权限的管理员（可以任意操作所有namespace中的所有资源）生成token的步骤详解。
+
+> 注意：登陆dashboard的时候token值是必须的，而kubeconfig文件是kubectl命令所必须的，kubectl命令使用的kubeconfig文件中可以不包含token信息。
 
 需要创建一个admin用户并授予admin角色绑定，使用下面的yaml文件创建admin用户并赋予他管理员权限，然后可以通过token登陆dashbaord，该文件见[admin-role.yaml](https://github.com/rootsongjc/kubernetes-handbook/tree/master/manifests/dashboard-1.7.1/admin-role.yaml)。这种认证方式本质上是通过 Service Account 的身份认证加上 Bearer token 请求 API server 的方式实现，参考 [Kubernetes 中的认证](https://kubernetes.io/docs/admin/authentication/)。
 
@@ -125,6 +143,16 @@ kubectl create -f admin-role.yaml
 
 创建完成后获取secret和token的值。
 
+运行下面的命令直接获取admin用户的token：
+
+```bash
+kubectl -n kube-system describe secret `kubectl -n kube-system get secret|grep admin-token|cut -d " " -f1`|grep "token:"|tr -s " "|cut -d " " -f2
+```
+
+**手动获取**
+
+也可以执行下面的步骤来获取token值：
+
 ```bash
 # 获取admin-token的secret名字
 $ kubectl -n kube-system get secret|grep admin-token
@@ -146,9 +174,9 @@ token:		非常长的字符串
 ca.crt:		1310 bytes
 ```
 
-在 dashboard 登录页面上使用上面输出中的那个**非常长的字符串进行 `base64` 解码后**作为 token 登录，即可以拥有管理员权限操作整个kubernetes集群中的对象。当然您也可以将这串 token 进行 `base64` 解码后，加到 admin 用户的`kubeconfig`文件中，继续使用`kubeconfig`登录，两种认证方式任您选择。
+在 dashboard 登录页面上有两种登录方式，`kubeconfig` 文件和 token （令牌），使用 token 登录可以直接使用上面输出中的那个**非常长的字符串**作为 token 登录，即可以拥有管理员权限操作整个kubernetes集群中的对象。对于 `kubeconfig` 文件登录方式，不能直接使用之前给 kubectl 生成的 `kubeconfig` 文件(`~/.kube/config`) 需要给它加一个 token 字段，您可以将这串 token 加到 admin 用户的`kubeconfig`文件中，继续使用`kubeconfig`登录，具体加的位置可以参考`bootstrap-kubeconfig` 文件，两种认证方式任您选择。
 
-**注意**：一定要将 kubectl 的输出中的 token 值进行 `base64` 解码，在线解码工具 [base64decode](https://www.base64decode.org/)，Linux 和 Mac 有自带的 `base64` 命令也可以直接使用，输入  `base64` 是进行编码，Linux 中`base64 -d` 表示解码，Mac 中使用 `base64 -D`。
+**注意**：通过 `kubectl get secret xxx` 输出中的 token 值需要进行 `base64` 解码，在线解码工具 [base64decode](https://www.base64decode.org/)，Linux 和 Mac 有自带的 `base64` 命令也可以直接使用，输入  `base64` 是进行编码，Linux 中`base64 -d` 表示解码，Mac 中使用 `base64 -D`；通过 `kubectl describe secret xxx` 输出中的 token 不需要 `base64` 解码。
 
 也可以使用 jsonpath 的方式直接获取 token 的值，如：
 
@@ -157,6 +185,8 @@ kubectl -n kube-system get secret admin-token-nwphb -o jsonpath={.data.token}|ba
 ```
 
 注意我们使用了 base64 对其重新解码，因为 secret 都是经过 base64 编码的，如果直接使用 kubectl 中查看到的 `token` 值会认证失败，详见 [secret 配置](../guide/secret-configuration.md)。关于 JSONPath 的使用请参考 [JSONPath 手册](https://kubernetes.io/docs/user-guide/jsonpath/)。
+
+**注意**：关于如何给其它namespace的管理员生成token请参考[使用kubeconfig或token进行用户身份认证](../guide/auth-with-kubeconfig-or-token.md)。
 
 ## 参考
 

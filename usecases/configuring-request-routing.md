@@ -14,18 +14,17 @@
 
 1. 将微服务的默认版本设置成v1。
 
- ```
+ ```bash
  istioctl create -f samples/apps/bookinfo/route-rule-all-v1.yaml
  ```
 
  使用以下命令查看定义的路由规则。
 
- ```
+ ```bash
  istioctl get route-rules -o yaml
-
  ```
 
- ```Yaml
+ ```yaml
  type: route-rule
  name: details-default
  namespace: default
@@ -70,23 +69,23 @@
 
  由于对代理的规则传播是异步的，因此在尝试访问应用程序之前，需要等待几秒钟才能将规则传播到所有pod。
 
-2. 在浏览器中打开BookInfo URL（http://$GATEWAY_URL/productpage，我们在上一节中使用的是 http://ingress.istio.io/productpage ）您应该会看到BookInfo应用程序的产品页面显示。 注意，产品页面上没有评分星，因为`reviews:v1`不访问评级服务。
+2. 在浏览器中打开BookInfo URL（http://$GATEWAY_URL/productpage ，我们在上一节中使用的是 http://ingress.istio.io/productpage ）您应该会看到BookInfo应用程序的产品页面显示。 注意，产品页面上没有评分星，因为`reviews:v1`不访问评级服务。
 
 3. 将特定用户路由到`reviews:v2`。
 
    为测试用户jason启用评分服务，将productpage的流量路由到`reviews:v2`实例上。
 
-   ```
+   ```bash
    istioctl create -f samples/apps/bookinfo/route-rule-reviews-test-v2.yaml
    ```
 
    确认规则生效：
 
-   ```
+   ```bash
    istioctl get route-rule reviews-test-v2
    ```
 
-   ```Yams
+   ```yaml
    destination: reviews.default.svc.cluster.local
    match:
      httpHeaders:
@@ -112,7 +111,7 @@
 
 1. 将50%的流量从`reviews:v1`转移到`reviews:v3`上。
 
- ```
+ ```bash
  istioctl replace -f samples/apps/bookinfo/route-rule-reviews-50-v3.yaml
  ```
 
@@ -122,7 +121,7 @@
 
    删除测试规则。
 
-   ```
+   ```bash
    istioctl delete route-rule reviews-test-v2
    istioctl delete route-rule ratings-test-delay
    ```
@@ -133,7 +132,7 @@
 
 3. 当v3版本的微服务稳定以后，就可以将100%的流量分摊到`reviews:v3`上了。
 
-   ```
+   ```bash
    istioctl replace -f samples/apps/bookinfo/route-rule-reviews-v3.yaml
    ```
 

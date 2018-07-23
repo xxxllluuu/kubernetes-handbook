@@ -54,7 +54,7 @@ Pod 除了必须字段外，在 DaemonSet 中的 Pod 模板必须指定合理的
 类似这种情况，可以指定 `.spec.template.spec.affinity`，然后 DaemonSet Controller 将在能够匹配上 [Node Affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) 的 Node 上创建 Pod。
 如果根本就没有指定，则 DaemonSet Controller 将在所有 Node 上创建 Pod。
 
-## 如果调度 Daemon Pod
+## 如何调度 Daemon Pod
 
 正常情况下，Pod 运行在哪个机器上是由 Kubernetes 调度器进行选择的。然而，由 Daemon Controller 创建的 Pod 已经确定了在哪个机器上（Pod 创建时指定了 `.spec.nodeName`），因此：
 
@@ -87,14 +87,14 @@ Daemon Pod 关心 [Taint 和 Toleration](https://kubernetes.io/docs/concepts/con
 很可能通过直接在一个 Node 上启动 daemon 进程（例如，使用 `init`、`upstartd`、或 `systemd`）。这非常好，然而基于 DaemonSet 来运行这些进程有如下一些好处：
 
 - 像对待应用程序一样，具备为 daemon 提供监控和管理日志的能力。
-- 为 daemon 和应用城西使用相同的配置语言和工具（如 Pod 模板、`kubectl`）。
+- 为 daemon 和应用程序使用相同的配置语言和工具（如 Pod 模板、`kubectl`）。
 - Kubernetes 未来版本可能会支持对 DaemonSet 创建 Pod 与 Node升级工作流进行集成。
 - 在资源受限的容器中运行 daemon，能够增加 daemon 和应用容器的隔离性。然而这也实现了在容器中运行 daemon，但却不能在 Pod 中运行（例如，直接基于 Docker 启动）。
 
 ### 裸 Pod
 
 可能要直接创建 Pod，同时指定其运行在特定的 Node 上。
-然而，DaemonSet 替换了由于任何原因被删除或终止的 Pod，例如 Node 失败、例行节点维护，比如内和升级。由于这个原因，我们应该使用 DaemonSet 而不是单独创建 Pod。
+然而，DaemonSet 替换了由于任何原因被删除或终止的 Pod，例如 Node 失败、例行节点维护，比如内核升级。由于这个原因，我们应该使用 DaemonSet 而不是单独创建 Pod。
 
 ### 静态 Pod
 

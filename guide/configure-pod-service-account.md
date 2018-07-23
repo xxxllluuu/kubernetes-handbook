@@ -18,7 +18,7 @@ Service account 是否能够取得访问 API 的许可取决于您使用的 [授
 
 在 1.6 以上版本中，您可以选择取消为 service account 自动挂载 API 凭证，只需在 service account 中设置 `automountServiceAccountToken: false`：
 
-```Yaml
+```yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -104,7 +104,7 @@ $ kubectl delete serviceaccount/build-robot
 
 假设我们已经有了一个如上文提到的名为 ”build-robot“ 的 service account，我们手动创建一个新的 secret。
 
-```shell
+```bash
 $ cat > /tmp/build-robot-secret.yaml <<EOF
 apiVersion: v1
 kind: Secret

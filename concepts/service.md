@@ -52,7 +52,7 @@ Kubernetes `Service` 能够支持 `TCP` 和 `UDP` 协议，默认 `TCP` 协议�
 
 ### 没有 selector 的 Service
 
-Servcie 抽象了该如何访问 Kubernetes `Pod`，但也能够抽象其它类型的 backend，例如：
+Service 抽象了该如何访问 Kubernetes `Pod`，但也能够抽象其它类型的 backend，例如：
 
 * 希望在生产环境中使用外部的数据库集群，但测试环境使用自己的数据库。
 * 希望服务指向另一个 [`Namespace`](https://kubernetes.io/docs/user-guide/namespaces) 中或其它集群中的服务。
@@ -113,6 +113,8 @@ spec:
 在 Kubernetes v1.0 版本，代理完全在 userspace。在 Kubernetes v1.1 版本，新增了 iptables 代理，但并不是默认的运行模式。
 从 Kubernetes v1.2 起，默认就是 iptables 代理。
 
+在Kubernetes v1.8.0-beta.0中，添加了ipvs代理。
+
 在 Kubernetes v1.0 版本，`Service` 是 “4层”（TCP/UDP over IP）概念。
 在 Kubernetes v1.1 版本，新增了 `Ingress` API（beta 版），用来表示 “7层”（HTTP）服务。
 
@@ -143,11 +145,28 @@ spec:
 实现基于客户端 IP 的会话亲和性，可以将 `service.spec.sessionAffinity` 的值设置为 `"ClientIP"` （默认值为 `"None"`）。
 
 和 userspace 代理类似，网络返回的结果是，任何到达 `Service` 的 IP:Port 的请求，都会被代理到一个合适的 backend，不需要客户端知道关于 Kubernetes、`Service`、或 `Pod` 的任何信息。
-这应该比 userspace 代理更快、更可靠。然而，不像 userspace 代理，如果初始选择的 `Pod` 没有响应，iptables 代理能够自动地重试另一个 `Pod`，所以它需要依赖 [readiness probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-readiness-probes)。
+这应该比 userspace 代理更快、更可靠。然而，不像 userspace 代理，如果初始选择的 `Pod` 没有响应，iptables 代理不能自动地重试另一个 `Pod`，所以它需要依赖 [readiness probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-readiness-probes)。
 
 ![iptables代理模式下Service概览图](../images/services-iptables-overview.jpg)
 
 
+
+### ipvs 代理模式
+
+这种模式，kube-proxy会监视Kubernetes `Service`对象和`Endpoints`，调用`netlink`接口以相应地创建ipvs规则并定期与Kubernetes `Service`对象和`Endpoints`对象同步ipvs规则，以确保ipvs状态与期望一致。访问服务时，流量将被重定向到其中一个后端Pod。
+
+与iptables类似，ipvs基于netfilter 的 hook 功能，但使用哈希表作为底层数据结构并在内核空间中工作。这意味着ipvs可以更快地重定向流量，并且在同步代理规则时具有更好的性能。此外，ipvs为负载均衡算法提供了更多选项，例如：
+
+- `rr`：轮询调度
+- `lc`：最小连接数
+- `dh`：目标哈希
+- `sh`：源哈希
+- `sed`：最短期望延迟
+- `nq`： 不排队调度
+
+**注意：** ipvs模式假定在运行kube-proxy之前在节点上都已经安装了IPVS内核模块。当kube-proxy以ipvs代理模式启动时，kube-proxy将验证节点上是否安装了IPVS模块，如果未安装，则kube-proxy将回退到iptables代理模式。
+
+![ipvs代理模式下Service概览图](../images/service-ipvs-overview.png)
 
 ## 多端口 Service
 
@@ -201,7 +220,7 @@ Kubernetes 支持2种基本的服务发现模式 —— 环境变量和 DNS。
 
 举个例子，一个名称为 `"redis-master"` 的 Service 暴露了 TCP 端口 6379，同时给它分配了 Cluster IP 地址 10.0.0.11，这个 Service 生成了如下环境变量：
 
-```shell
+```bash
 REDIS_MASTER_SERVICE_HOST=10.0.0.11
 REDIS_MASTER_SERVICE_PORT=6379
 REDIS_MASTER_PORT=tcp://10.0.0.11:6379

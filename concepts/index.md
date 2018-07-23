@@ -29,7 +29,7 @@ Kubernetes主要由以下几个核心组件组成：
 - apiserver提供了资源操作的唯一入口，并提供认证、授权、访问控制、API注册和发现等机制；
 - controller manager负责维护集群的状态，比如故障检测、自动扩展、滚动更新等；
 - scheduler负责资源的调度，按照预定的调度策略将Pod调度到相应的机器上；
-- kubelet负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理；
+- kubelet负责维护容器的生命周期，同时也负责Volume（CSI）和网络（CNI）的管理；
 - Container runtime负责镜像管理以及Pod和容器的真正运行（CRI）；
 - kube-proxy负责为Service提供cluster内部的服务发现和负载均衡；
 
@@ -45,6 +45,12 @@ Kubernetes主要由以下几个核心组件组成：
 ## Kubernetes架构示意图
 
 ### 整体架构
+
+下图清晰表明了Kubernetes的架构设计以及组件之间的通信协议。
+
+![Kuberentes架构（图片来自于网络）](../images/kubernetes-high-level-component-archtecture.jpg)
+
+下面是更抽象的一个视图：
 
 ![kubernetes整体架构示意图](../images/kubernetes-whole-arch.png)
 
@@ -70,7 +76,7 @@ Kubernetes设计理念和功能其实就是一个类似Linux的分层架构，�
   * Kubernetes外部：日志、监控、配置管理、CI、CD、Workflow、FaaS、OTS应用、ChatOps等
   * Kubernetes内部：CRI、CNI、CVI、镜像仓库、Cloud Provider、集群自身的配置和管理等
 
-> 关于分层架构，可以关注下Kubernetes社区正在推进的[Kbernetes architectual roadmap](https://docs.google.com/document/d/1XkjVm4bOeiVkj-Xt1LgoGiqWsBfNozJ51dyI-ljzt1o)和[slide](https://docs.google.com/presentation/d/1GpELyzXOGEPY0Y1ft26yMNV19ROKt8eMN67vDSSHglk/edit)。
+> 关于分层架构，可以关注下Kubernetes社区正在推进的[Kubernetes architectual roadmap](https://docs.google.com/document/d/1XkjVm4bOeiVkj-Xt1LgoGiqWsBfNozJ51dyI-ljzt1o)和[slide](https://docs.google.com/presentation/d/1GpELyzXOGEPY0Y1ft26yMNV19ROKt8eMN67vDSSHglk/edit)。
 
 ## 参考文档
 
@@ -78,5 +84,5 @@ Kubernetes设计理念和功能其实就是一个类似Linux的分层架构，�
 - <http://queue.acm.org/detail.cfm?id=2898444>
 - <http://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/43438.pdf>
 - <http://thenewstack.io/kubernetes-an-overview>
-- [Kbernetes architectual roadmap](https://docs.google.com/document/d/1XkjVm4bOeiVkj-Xt1LgoGiqWsBfNozJ51dyI-ljzt1o)和[slide](https://docs.google.com/presentation/d/1GpELyzXOGEPY0Y1ft26yMNV19ROKt8eMN67vDSSHglk/edit)
+- [Kubernetes architectual roadmap](https://docs.google.com/document/d/1XkjVm4bOeiVkj-Xt1LgoGiqWsBfNozJ51dyI-ljzt1o)和[slide](https://docs.google.com/presentation/d/1GpELyzXOGEPY0Y1ft26yMNV19ROKt8eMN67vDSSHglk/edit)
 

@@ -5,10 +5,10 @@ Minikube用于在本地运行kubernetes环境，用来开发和测试。
 ## 在Mac上安装xhyve-driver
 
 ```bash
-docker-machine-driver-xhyve
+brew install docker-machine-driver-xhyve
 # docker-machine-driver-xhyve need root owner and uid
-$ sudo chown root:wheel $(brew --prefix)/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
-$ sudo chmod u+s $(brew --prefix)/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
+sudo chown root:wheel $(brew --prefix)/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
+sudo chmod u+s $(brew --prefix)/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
 ```
 
 到 https://github.com/kubernetes/minikube/releases 下载 minikube，我安装的是minikube v0.22.3
@@ -26,12 +26,21 @@ chmod +x /usr/local/bin/minikube
 
 ```bash
 curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/darwin/amd64/kubectl
+或者：
+先访问https://storage.googleapis.com/kubernetes-release/release/stable.txt
+得到返回值，假设为:v1.9.1，然后拼接网址，直接在浏览器访问：
+https://storage.googleapis.com/kubernetes-release/release/v1.9.1/bin/darwin/amd64/kubectl
+直接下载kubectl文件。
 ```
+
+若第一种方式访问多次超时，可以使用上述的第二种方式访问。
 
 ## 启动Minikube
 
+假设使用xhyve-driver虚拟技术，则需要在minikube start加入参数 `--vm-driver=xhyve`。
+
 ```bash
-minikube start
+minikube start --vm-driver=xhyve
 Starting local Kubernetes v1.7.5 cluster...
 Starting VM...
 Downloading Minikube ISO

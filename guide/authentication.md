@@ -56,7 +56,7 @@ openssl req -new -key jbeda.pem -out jbeda-csr.pem -subj "/CN=jbeda/O=app1/O=app
 
 token 文件是一个 csv 文件，每行至少包含三列：token、用户名、用户 uid，其次是可选的组名。请注意，如果您有多个组，则该列必须使用双引号。
 
-```conf
+```ini
 token,user,uid,"group1,group2,group3"
 ```
 
@@ -100,9 +100,9 @@ password,user,uid,"group1,group2,group3"
 
 ### Service Account Token
 
-Service account 是使用签名的 bearer token 来验证请求的额自动启用的验证器。该插件包括两个可选的标志：
+Service account 是一个自动启用的验证器，它使用签名的 bearer token 来验证请求。该插件包括两个可选的标志：
 
-- `--service-account-key-file`  一个包含签名 bearer token 的 PEM 编码文件。如果为指定，将使用 API server 的 TLS 私钥。
+- `--service-account-key-file`  一个包含签名 bearer token 的 PEM 编码文件。如果未指定，将使用 API server 的 TLS 私钥。
 - `--service-account-lookup` 如果启用，从 API 中删除掉的 token 将被撤销。
 
 Service account 通常 API server 自动创建，并通过 `ServiceAccount` [注入控制器](https://kubernetes.io/docs/admin/admission-controllers/) 关联到集群中运行的 Pod 上。Bearer token 挂载到 pod 中众所周知的位置，并允许集群进程与 API server 通信。 帐户可以使用 `PodSpec` 的 `serviceAccountName` 字段显式地与Pod关联。
@@ -141,7 +141,7 @@ secrets:
 - name: jenkins-token-1yvwg
 ```
 
-创建出的 secret 中拥有 API server 的公共 CA 和前面的饿 JSON Web Token（JWT）。
+创建出的 secret 中拥有 API server 的公共 CA 和前面的 JSON Web Token（JWT）。
 
 ```bash
 $ kubectl get secret jenkins-token-1yvwg -o yaml
@@ -471,7 +471,7 @@ Impersonate-Extra-scopes: development
 
 当使用 `kubectl` 的 `--as` 标志来配置 `Impersonate-User` header 时，可以使用 `--as-group` 标志来配置 `Impersonate-Group` header。
 
-```shell
+```bash
 $ kubectl drain mynode
 Error from server (Forbidden): User "clark" cannot get nodes at the cluster scope. (get nodes mynode)
 
@@ -543,7 +543,7 @@ rules:
 
 **已有的部署脚本** 在 `cluster/saltbase/salt/generate-cert/make-ca-cert.sh`。
 
-执行该脚本时需要船体两个参数。第一个参数是 API server 的 IP地址。第二个参数是 IP 形式的主题备用名称列表： `IP:<ip-address>` 或 `DNS:<dns-name>`。
+执行该脚本时需要传递两个参数。第一个参数是 API server 的 IP地址。第二个参数是 IP 形式的主题备用名称列表： `IP:<ip-address>` 或 `DNS:<dns-name>`。
 
 该脚本将生成三个文件： `ca.crt`、`server.crt` 和 `server.key`。
 
@@ -634,6 +634,7 @@ rules:
 
 您可以使用 `certificates.k8s.io` API将 x509 证书配置为用于身份验证，如 [此处](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster) 所述。
 
-官方文档地址：https://kubernetes.io/docs/admin/authentication/
+官方v1.6文档地址：https://v1-6.docs.kubernetes.io/docs/admin/authentication/
+官方最新文档地址：https://kubernetes.io/docs/admin/authentication/
 
 译者：[Jimmy Song](https://jimmysong.io)

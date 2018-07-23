@@ -24,7 +24,7 @@ Ingress Controller 实质上可以理解为是个监视器，Ingress Controller 
 
 将用于service account验证。
 
-```Yaml
+```yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -47,7 +47,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-**创建名为`traefik-ingress`的ingress**，文件名traefik.yaml
+**创建名为`traefik-ingress`的ingress**，文件名ingress.yaml
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -75,15 +75,17 @@ spec:
 
 这其中的`backend`中要配置default namespace中启动的service名字，如果你没有配置namespace名字，默认使用default namespace，如果你在其他namespace中创建服务想要暴露到kubernetes集群外部，可以创建新的ingress.yaml文件，同时在文件中指定该`namespace`，其他配置与上面的文件格式相同。。`path`就是URL地址后的路径，如traefik.frontend.io/path，service将会接受path这个路径，host最好使用service-name.filed1.filed2.domain-name这种类似主机名称的命名方式，方便区分服务。
 
-根据你自己环境中部署的service的名字和端口自行修改，有新service增加时，修改该文件后可以使用`kubectl replace -f traefik.yaml`来更新。
+根据你自己环境中部署的service的名字和端口自行修改，有新service增加时，修改该文件后可以使用`kubectl replace -f ingress.yaml`来更新。
 
 我们现在集群中已经有两个service了，一个是nginx，另一个是官方的`guestbook`例子。
 
-**创建Depeloyment**
+**创建DaemonSet**
 
-```Yaml
+我们使用DaemonSet类型来部署Traefik，并使用`nodeSelector`来限定Traefik所部署的主机。
+
+```yaml
 apiVersion: extensions/v1beta1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: traefik-ingress-lb
   namespace: kube-system
@@ -121,11 +123,25 @@ spec:
         - --web
         - --web.address=:8580
         - --kubernetes
+      nodeSelector:
+        edgenode: "true"
 ```
 
-注意我们这里用的是Deploy类型，没有限定该pod运行在哪个主机上。Traefik的端口是8580。
+**注意**：我们使用了`nodeSelector`选择边缘节点来调度traefik-ingress-lb运行在它上面，所有你需要使用：
+
+```ini
+kubectl label nodes 172.20.0.113 edgenode=true
+kubectl label nodes 172.20.0.114 edgenode=true
+kubectl label nodes 172.20.0.115 edgenode=true
+```
+
+给三个node打标签，这样traefik的pod才会调度到这几台主机上，否则会一直处于`pending`状态。
+
+关于使用Traefik作为边缘节点请参考[边缘节点配置](../practice/edge-node-configuration.md)。
 
 **Traefik UI**
+
+使用下面的yaml配置来创建Traefik的Web UI。
 
 ```yaml
 apiVersion: v1
@@ -228,8 +244,6 @@ Traefik会解析http请求header里的Host参数将流量转发给Ingress配置�
 
 ## 参考
 
-[Traefik-kubernetes 初试](http://www.colabug.com/thread-1703745-1-1.html)
-
-[Traefik简介](http://www.tuicool.com/articles/ZnuEfay)
-
-[Guestbook example](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook)
+- [Traefik-kubernetes 初试](http://www.colabug.com/thread-1703745-1-1.html)
+- [Traefik简介](http://www.tuicool.com/articles/ZnuEfay)
+- [Guestbook example](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook)

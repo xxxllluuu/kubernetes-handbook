@@ -11,9 +11,10 @@ kubernetes master 节点包含的组件：
 + `kube-scheduler`、`kube-controller-manager` 和 `kube-apiserver` 三者的功能紧密相关；
 + 同时只能有一个 `kube-scheduler`、`kube-controller-manager` 进程处于工作状态，如果运行多个，则需要通过选举产生一个 leader；
 
-~~本文档记录部署一个三个节点的高可用 kubernetes master 集群步骤。（后续创建一个 load balancer 来代理访问 kube-apiserver 的请求）~~
+**注**：
 
-暂时未实现master节点的高可用。
+- 暂时未实现master节点的高可用
+- master节点上没有部署flannel网络插件，如果想要在master节点上也能访问ClusterIP，请参考下一节[部署node节点](node-installation.md)中的配置Flanneld部分。
 
 ## TLS 证书文件
 
@@ -26,13 +27,13 @@ admin-key.pem  admin.pem  ca-key.pem  ca.pem  kube-proxy-key.pem  kube-proxy.pem
 
 ## 下载最新版本的二进制文件
 
-有两种下载方式
+有两种下载方式，请注意下载对应的Kubernetes版本。
 
 **方式一**
 
 从 [github release 页面](https://github.com/kubernetes/kubernetes/releases) 下载发布版 tarball，解压后再执行下载脚本
 
-``` shell
+``` bash
 wget https://github.com/kubernetes/kubernetes/releases/download/v1.6.0/kubernetes.tar.gz
 tar -xzvf kubernetes.tar.gz
 cd kubernetes
@@ -44,7 +45,7 @@ cd kubernetes
 
 `server` 的 tarball `kubernetes-server-linux-amd64.tar.gz` 已经包含了 `client`(`kubectl`) 二进制文件，所以不用单独下载`kubernetes-client-linux-amd64.tar.gz`文件；
 
-``` shell
+```bash
 # wget https://dl.k8s.io/v1.6.0/kubernetes-client-linux-amd64.tar.gz
 wget https://dl.k8s.io/v1.6.0/kubernetes-server-linux-amd64.tar.gz
 tar -xzvf kubernetes-server-linux-amd64.tar.gz
@@ -61,7 +62,7 @@ cp -r server/bin/{kube-apiserver,kube-controller-manager,kube-scheduler,kubectl,
 
 **创建 kube-apiserver的service配置文件**
 
-serivce配置文件`/usr/lib/systemd/system/kube-apiserver.service`内容：
+service配置文件`/usr/lib/systemd/system/kube-apiserver.service`内容：
 
 ```ini
 [Unit]
@@ -116,7 +117,7 @@ KUBE_LOG_LEVEL="--v=0"
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
 # How the controller-manager, scheduler, and proxy find the apiserver
-#KUBE_MASTER="--master=http://sz-pg-oam-docker-test-001.tendcloud.com:8080"
+#KUBE_MASTER="--master=http://test-001.jimmysong.io:8080"
 KUBE_MASTER="--master=http://172.20.0.113:8080"
 ```
 
@@ -132,7 +133,7 @@ apiserver配置文件`/etc/kubernetes/apiserver`内容为：
 ##
 #
 ## The address on the local server to listen to.
-#KUBE_API_ADDRESS="--insecure-bind-address=sz-pg-oam-docker-test-001.tendcloud.com"
+#KUBE_API_ADDRESS="--insecure-bind-address=test-001.jimmysong.io"
 KUBE_API_ADDRESS="--advertise-address=172.20.0.113 --bind-address=172.20.0.113 --insecure-bind-address=172.20.0.113"
 #
 ## The port on the local server to listen on.
@@ -154,6 +155,8 @@ KUBE_ADMISSION_CONTROL="--admission-control=ServiceAccount,NamespaceLifecycle,Na
 KUBE_API_ARGS="--authorization-mode=RBAC --runtime-config=rbac.authorization.k8s.io/v1beta1 --kubelet-https=true --experimental-bootstrap-token-auth --token-auth-file=/etc/kubernetes/token.csv --service-node-port-range=30000-32767 --tls-cert-file=/etc/kubernetes/ssl/kubernetes.pem --tls-private-key-file=/etc/kubernetes/ssl/kubernetes-key.pem --client-ca-file=/etc/kubernetes/ssl/ca.pem --service-account-key-file=/etc/kubernetes/ssl/ca-key.pem --etcd-cafile=/etc/kubernetes/ssl/ca.pem --etcd-certfile=/etc/kubernetes/ssl/kubernetes.pem --etcd-keyfile=/etc/kubernetes/ssl/kubernetes-key.pem --enable-swagger-ui=true --apiserver-count=3 --audit-log-maxage=30 --audit-log-maxbackup=3 --audit-log-maxsize=100 --audit-log-path=/var/lib/audit.log --event-ttl=1h"
 ```
 
++ `--experimental-bootstrap-token-auth` Bootstrap Token Authentication在1.9版本已经变成了正式feature，参数名称改为`--enable-bootstrap-token-auth`
++ 如果中途修改过`--service-cluster-ip-range`地址，则必须将default命名空间的`kubernetes`的service给删除，使用命令：`kubectl delete service kubernetes`，然后系统会自动用新的ip重建这个service，不然apiserver的log有报错`the cluster IP x.x.x.x for service kubernetes/default is not within the service CIDR x.x.x.x/16; please recreate`
 + `--authorization-mode=RBAC` 指定在安全端口使用 RBAC 授权模式，拒绝未通过授权的请求；
 + kube-scheduler、kube-controller-manager 一般和 kube-apiserver 部署在同一台机器上，它们使用**非安全端口**和 kube-apiserver通信;
 + kubelet、kube-proxy、kubectl 部署在其它 Node 节点上，如果通过**安全端口**访问 kube-apiserver，则必须先通过 TLS 证书认证，再通过 RBAC 授权；
@@ -164,6 +167,12 @@ KUBE_API_ARGS="--authorization-mode=RBAC --runtime-config=rbac.authorization.k8s
 + `runtime-config`配置为`rbac.authorization.k8s.io/v1beta1`，表示运行时的apiVersion；
 + `--service-cluster-ip-range` 指定 Service Cluster IP 地址段，该地址段不能路由可达；
 + 缺省情况下 kubernetes 对象保存在 etcd `/registry` 路径下，可以通过 `--etcd-prefix` 参数进行调整；
++ 如果需要开通http的无认证的接口，则可以增加以下两个参数：`--insecure-port=8080 --insecure-bind-address=127.0.0.1`。注意，生产上不要绑定到非127.0.0.1的地址上
+
+**Kubernetes 1.9**
+
+- 对于Kubernetes1.9集群，需要注意配置`KUBE_API_ARGS`环境变量中的`--authorization-mode=Node,RBAC`，增加对`Node`授权的模式，否则将无法注册node。
+- `--experimental-bootstrap-token-auth` Bootstrap Token Authentication在kubernetes 1.9版本已经废弃，参数名称改为`--enable-bootstrap-token-auth`
 
 完整 unit 见 [kube-apiserver.service](../systemd/kube-apiserver.service)
 
@@ -217,21 +226,8 @@ KUBE_CONTROLLER_MANAGER_ARGS="--address=127.0.0.1 --service-cluster-ip-range=10.
 + `--service-cluster-ip-range` 参数指定 Cluster 中 Service 的CIDR范围，该网络在各 Node 间必须路由不可达，必须和 kube-apiserver 中的参数一致；
 + `--cluster-signing-*` 指定的证书和私钥文件用来签名为 TLS BootStrap 创建的证书和私钥；
 + `--root-ca-file` 用来对 kube-apiserver 证书进行校验，**指定该参数后，才会在Pod 容器的 ServiceAccount 中放置该 CA 证书文件**；
-+ `--address` 值必须为 `127.0.0.1`，因为当前 kube-apiserver 期望 scheduler 和 controller-manager 在同一台机器，否则：
++ `--address` 值必须为 `127.0.0.1`，kube-apiserver 期望 scheduler 和 controller-manager 在同一台机器；
 
-    ``` bash
-    $ kubectl get componentstatuses
-    NAME                 STATUS      MESSAGE                                                                                        ERROR
-    scheduler            Unhealthy   Get http://127.0.0.1:10251/healthz: dial tcp 127.0.0.1:10251: getsockopt: connection refused   
-    controller-manager   Healthy     ok                                                                                             
-    etcd-2               Healthy     {"health": "true"} 
-    etcd-0               Healthy     {"health": "true"}                                                                             
-    etcd-1               Healthy     {"health": "true"}  
-    ```
-
-    如果有组件report unhealthy请参考：https://github.com/kubernetes-incubator/bootkube/issues/64
-
-完整 unit 见 [kube-controller-manager.service](../systemd/kube-controller-manager.service)
 
 ### 启动 kube-controller-manager
 
@@ -239,7 +235,24 @@ KUBE_CONTROLLER_MANAGER_ARGS="--address=127.0.0.1 --service-cluster-ip-range=10.
 systemctl daemon-reload
 systemctl enable kube-controller-manager
 systemctl start kube-controller-manager
+systemctl status kube-controller-manager
 ```
+
+我们启动每个组件后可以通过执行命令`kubectl get componentstatuses`，来查看各个组件的状态;
+
+```bash
+$ kubectl get componentstatuses
+NAME                 STATUS      MESSAGE                                                                                        ERROR
+scheduler            Unhealthy   Get http://127.0.0.1:10251/healthz: dial tcp 127.0.0.1:10251: getsockopt: connection refused   
+controller-manager   Healthy     ok                                                                                             
+etcd-2               Healthy     {"health": "true"} 
+etcd-0               Healthy     {"health": "true"}                                                                             
+etcd-1               Healthy     {"health": "true"}  
+```
+
+- 如果有组件report unhealthy请参考：https://github.com/kubernetes-incubator/bootkube/issues/64
+
+完整 unit 见 [kube-controller-manager.service](../systemd/kube-controller-manager.service)
 
 ## 配置和启动 kube-scheduler
 
@@ -289,6 +302,7 @@ KUBE_SCHEDULER_ARGS="--leader-elect=true --address=127.0.0.1"
 systemctl daemon-reload
 systemctl enable kube-scheduler
 systemctl start kube-scheduler
+systemctl status kube-scheduler
 ```
 
 ## 验证 master 节点功能

@@ -41,10 +41,12 @@ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admi
 然后安装helm服务端tiller
 
 ```bash
-helm init -i sz-pg-oam-docker-hub-001.tendcloud.com/library/kubernetes-helm-tiller:v2.3.1
+helm init -i jimmysong/kubernetes-helm-tiller:v2.8.1 
 ```
+(目前最新版v2.8.2，可以使用阿里云镜像，如：
+helm init --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.8.2 --stable-repo-url https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts）
 
-我们使用`-i`指定自己的镜像，因为官方的镜像因为某些原因无法拉取。
+我们使用`-i`指定自己的镜像，因为官方的镜像因为某些原因无法拉取，官方镜像地址是：`gcr.io/kubernetes-helm/tiller:v2.8.1`，我在DockerHub上放了一个备份`jimmysong/kubernetes-helm-tiller:v2.8.1`，该镜像的版本与helm客户端的版本相同，使用`helm version`可查看helm客户端版本。
 
 为应用程序设置`serviceAccount`：
 
@@ -117,14 +119,14 @@ spec:
             path: /
             port: {{ .Values.service.internalPort }}
         resources:
-{{ toYaml .Values.resources | indent 12 }}
+{{ toyaml .Values.resources | indent 12 }}
 ```
 
 这是该应用的Deployment的yaml配置文件，其中的双大括号包扩起来的部分是Go template，其中的Values是在`values.yaml`文件中定义的：
 
-```Yaml
+```yaml
 # Default values for mychart.
-# This is a YAML-formatted file.
+# This is a yaml-formatted file.
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
@@ -152,7 +154,7 @@ resources:
 
 以上两个变量值是在create chart的时候自动生成的默认值。
 
-我们将默认的镜像地址和tag改成我们自己的镜像`sz-pg-oam-docker-hub-001.tendcloud.com/library/nginx:1.9`。
+我们将默认的镜像地址和tag改成我们自己的镜像`harbor-001.jimmysong.io/library/nginx:1.9`。
 
 ### 检查配置和模板是否有效
 
@@ -175,7 +177,7 @@ USER-SUPPLIED VALUES:
 COMPUTED VALUES:
 image:
   pullPolicy: IfNotPresent
-  repository: sz-pg-oam-docker-hub-001.tendcloud.com/library/nginx
+  repository: harbor-001.jimmysong.io/library/nginx
   tag: 1.9
 replicaCount: 1
 resources:
@@ -229,7 +231,7 @@ spec:
     spec:
       containers:
       - name: mychart
-        image: "sz-pg-oam-docker-hub-001.tendcloud.com/library/nginx:1.9"
+        image: "harbor-001.jimmysong.io/library/nginx:1.9"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -330,6 +332,20 @@ dependencies:
 
 ### 安装源
 
+#####################################################################
+
+使用第三方chat库
+
+。添加fabric8库
+
+    $helm repo add fabric8 https://fabric8.io/helm
+
+。搜索fabric8提供的工具（主要就是fabric8-platform工具包，包含了CI,CD的全套工具）
+
+    $helm search fabric8
+
+#####################################################################
+
 我们在前面安装chart可以通过HTTP server的方式提供。
 
 ```bash
@@ -343,6 +359,68 @@ Now serving you on 127.0.0.1:8879
 ![Helm chart源](../images/helm-charts-repository.jpg)
 
 点击链接即可以下载chart的压缩包。
+
+## 注意事项
+
+下面列举一些常见问题，和在解决这些问题时候的注意事项。
+
+### 服务依赖管理
+
+所有使用helm部署的应用中如果没有特别指定chart的名字都会生成一个随机的`Release name`，例如`romping-frog`、`sexy-newton`等，跟启动docker容器时候容器名字的命名规则相同，而真正的资源对象的名字是在YAML文件中定义的名字，我们成为`App name`，两者连接起来才是资源对象的实际名字：`Release name`-`App name`。
+
+而使用helm chart部署的包含依赖关系的应用，都会使用同一套`Release name`，在配置YAML文件的时候一定要注意在做服务发现时需要配置的服务地址，如果使用环境变量的话，需要像下面这样配置。
+
+```yaml
+env:
+ - name: SERVICE_NAME
+   value: "{{ .Release.Name }}-{{ .Values.image.env.SERVICE_NAME }}"
+```
+
+这是使用了Go template的语法。至于`{{ .Values.image.env.SERVICE_NAME }}`的值是从`values.yaml`文件中获取的，所以需要在`values.yaml`中增加如下配置：
+
+```yaml
+image:
+  env:
+    SERVICE_NAME: k8s-app-monitor-test
+```
+
+### 解决本地chart依赖
+
+在本地当前chart配置的目录下启动helm server，我们不指定任何参数，直接使用默认端口启动。
+
+```bash
+helm serve
+```
+
+将该repo加入到repo list中。
+
+```bash
+helm repo add local http://localhost:8879
+```
+
+在浏览器中访问<http://localhost:8879>可以看到所有本地的chart。
+
+然后下载依赖到本地。
+
+```bash
+helm dependency update
+```
+
+这样所有的chart都会下载到本地的`charts`目录下。
+
+### 设置helm命令自动补全
+
+为了方便helm命令的使用，helm提供了自动补全功能，如果使用zsh请执行：
+
+```bash
+source <(helm completion zsh)
+```
+
+如果使用bash请执行：
+
+```bash
+source <(helm completion bash)
+```
 
 ## 部署MEAN测试案例
 
@@ -393,7 +471,7 @@ Downloading mongodb from repo https://kubernetes-charts.storage.googleapis.com/
 将刚才下载的`charts/mongodb-0.4.17.tgz`给解压后，修改其中的配置：
 
 - 将`persistence`下的`enabled`设置为false
-- 将image修改为我们的私有镜像：sz-pg-oam-docker-hub-001.tendcloud.com/library/bitnami-mongodb:3.4.9-r1
+- 将image修改为我们的私有镜像：harbor-001.jimmysong.io/library/bitnami-mongodb:3.4.9-r1
 
 执行`helm install --dry-run --debug .`确定模板无误。
 
@@ -634,4 +712,4 @@ helm package .
 - [Go template](https://golang.org/pkg/text/template/)
 - [Helm docs](https://github.com/kubernetes/helm/blob/master/docs/index.md)
 - [How To Create Your First Helm Chart](https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/)
-- [Speed deployment on Kubernetes with Helm Chart – Quick YAML example from scratch](https://www.ibm.com/blogs/bluemix/2017/10/quick-example-helm-chart-for-kubernetes/)
+- [Speed deployment on Kubernetes with Helm Chart – Quick yaml example from scratch](https://www.ibm.com/blogs/bluemix/2017/10/quick-example-helm-chart-for-kubernetes/)

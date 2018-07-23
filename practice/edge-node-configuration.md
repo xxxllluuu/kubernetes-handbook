@@ -43,7 +43,7 @@ LVS的工作原理请参考：http://www.cnblogs.com/codebean/archive/2011/07/25
 
 因为我们的测试集群一共只有三个node，所有在在三个node上都要安装keepalived和ipvsadmin。
 
-```Shell
+```bash
 yum install keepalived ipvsadm
 ```
 
@@ -65,7 +65,7 @@ keepalived的官方配置文档见：http://keepalived.org/pdf/UserGuide.pdf
 
 配置文件`/etc/keepalived/keepalived.conf`文件内容如下：
 
-```
+```ini
 ! Configuration File for keepalived
 
 global_defs {
@@ -128,6 +128,12 @@ virtual_server 172.20.0.119 80{
 
 我们使用转发效率最高的`lb_kind DR`直接路由方式转发，使用TCP_CHECK来检测real_server的health。
 
+设置keepalived为开机自启动：
+
+```bash
+chkconfig keepalived on
+```
+
 **启动keepalived**
 
 ```
@@ -154,7 +160,7 @@ $ ip addr show eth0
 
 配置文件`traefik.yaml`内容如下：
 
-```Yaml
+```yaml
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -218,14 +224,23 @@ traefik-ingress-lb   3         3         3         3            3           edge
 
 现在就可以在外网通过172.20.0.119:80来访问到traefik ingress了。
 
+## 使用域名访问Kubernetes中的服务
+
+现在我们已经部署了以下服务：
+
+- 三个边缘节点，使用Traefik作为Ingress controller
+- 使用keepalived做的VIP（虚拟IP）172.20.0.119
+
+这样在访问该IP的时候通过指定不同的`Host`来路由到kubernetes后端服务。这种方式访问每个Service时都需要指定`Host`，而同一个项目中的服务一般会在同一个Ingress中配置，使用`Path`来区分Service已经足够，这时候只要为VIP（172.20.0.119）来配置一个域名，所有的外部访问直接通过该域名来访问即可。
+
+如下图所示：
+
+![使用域名来访问Kubernetes中的服务](../images/accessing-kubernetes-services-with-dns-name.png)
+
 ## 参考
 
-[kube-keepalived-vip](https://github.com/kubernetes/contrib/tree/master/keepalived-vip)
-
-http://www.keepalived.org/
-
-[keepalived工作原理与配置说明](http://outofmemory.cn/wiki/keepalived-configuration)
-
-[LVS简介及使用](http://www.cnblogs.com/codebean/archive/2011/07/25/2116043.html)
-
-[基于keepalived 实现VIP转移，lvs，nginx的高可用](http://limian.blog.51cto.com/7542175/1301776)
+- [kube-keepalived-vip](https://github.com/kubernetes/contrib/tree/master/keepalived-vip)
+- http://www.keepalived.org/
+- [keepalived工作原理与配置说明](http://outofmemory.cn/wiki/keepalived-configuration)
+- [LVS简介及使用](http://www.cnblogs.com/codebean/archive/2011/07/25/2116043.html)
+- [基于keepalived 实现VIP转移，lvs，nginx的高可用](http://limian.blog.51cto.com/7542175/1301776)

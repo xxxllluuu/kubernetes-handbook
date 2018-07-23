@@ -14,7 +14,7 @@ kubernetes 1.4 开始支持由 `kube-apiserver` 为客户端生成 TLS 证书的
 
 **Token auth file**
 
-Token可以是任意的包涵128 bit的字符串，可以使用安全的随机数发生器生成。
+Token可以是任意的包含128 bit的字符串，可以使用安全的随机数发生器生成。
 
 ``` bash
 export BOOTSTRAP_TOKEN=$(head -c 16 /dev/urandom | od -An -t x | tr -d ' ')
@@ -39,6 +39,8 @@ cp token.csv /etc/kubernetes/
 ```
 
 ## 创建 kubelet bootstrapping kubeconfig 文件
+
+执行下面的命令时需要先安装kubectl命令，请参考[安装kubectl命令行工具](kubectl-installation.md)。
 
 ``` bash
 cd /etc/kubernetes

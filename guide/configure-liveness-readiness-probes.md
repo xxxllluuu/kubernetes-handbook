@@ -14,7 +14,7 @@ Kubelet使用readiness probe（就绪探针）来确定容器是否已经就绪�
 
 在本次练习将基于 `gcr.io/google_containers/busybox`镜像创建运行一个容器的Pod。以下是Pod的配置文件`exec-liveness.yaml`：
 
-```Yaml
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -42,7 +42,7 @@ spec:
 
 容器启动时，执行该命令：
 
-```shell
+```bash
 /bin/sh -c "touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600"
 ```
 
@@ -50,7 +50,7 @@ spec:
 
 创建Pod：
 
-```shell
+```bash
 kubectl create -f https://k8s.io/docs/tasks/configure-pod-container/exec-liveness.yaml
 ```
 
@@ -62,7 +62,7 @@ kubectl describe pod liveness-exec
 
 结果显示没有失败的liveness probe：
 
-```shell
+```bash
 FirstSeen    LastSeen    Count   From            SubobjectPath           Type        Reason      Message
 --------- --------    -----   ----            -------------           --------    ------      -------
 24s       24s     1   {default-scheduler }                    Normal      Scheduled   Successfully assigned liveness-exec to worker0
@@ -74,13 +74,13 @@ FirstSeen    LastSeen    Count   From            SubobjectPath           Type   
 
 启动35秒后，再次查看pod的event：
 
-```shell
+```bash
 kubectl describe pod liveness-exec
 ```
 
 在最下面有一条信息显示liveness probe失败，容器被删掉并重新创建。
 
-```shell
+```bash
 FirstSeen LastSeen    Count   From            SubobjectPath           Type        Reason      Message
 --------- --------    -----   ----            -------------           --------    ------      -------
 37s       37s     1   {default-scheduler }                    Normal      Scheduled   Successfully assigned liveness-exec to worker0
@@ -93,13 +93,13 @@ FirstSeen LastSeen    Count   From            SubobjectPath           Type      
 
 再等30秒，确认容器已经重启：
 
-```shell
+```bash
 kubectl get pod liveness-exec
 ```
 
 从输出结果来`RESTARTS`值加1了。
 
-```shell
+```bash
 NAME            READY     STATUS    RESTARTS   AGE
 liveness-exec   1/1       Running   1          1m
 ```
@@ -157,7 +157,7 @@ http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 
 创建一个Pod来测试一下HTTP liveness检测：
 
-```shell
+```bash
 kubectl create -f https://k8s.io/docs/tasks/configure-pod-container/http-liveness.yaml
 ```
 
@@ -166,7 +166,7 @@ the Container has been restarted:
 
 10秒后，查看Pod的event，确认liveness probe失败并重启了容器。
 
-```shell
+```bash
 kubectl describe pod liveness-http
 ```
 
